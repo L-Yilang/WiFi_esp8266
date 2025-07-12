@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <meta charset="UTF-8">
+    <title>喂食设置</title>
+    <style>
+        .container-outer {
+            display: flex;
+            justify-content: center;
+            padding-left: 24px;   
+            padding-right: 24px;  
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0px 6px; /* 行，列 */
+            justify-content: center;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+        .item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .box {
+            width: 44px;
+            height: 44px;
+            background: #ddd;
+            border: 2px solid #aaa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.1s, border 0.2s;
+        }
+        .box.lit {
+            background: #ffd700;
+            border-color: #ff9800;
+        }
+        .label {
+            margin-bottom: 2px;
+            font-size: 12px;
+            color: #333;
+        }
+        .output {
+            text-align: center;
+            margin-top: 18px;
+            font-size: 15px;
+            color: #0078d4;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 16px;
+            gap: 24px; /* 按钮间距增大 */
+        }
+        button {
+            font-size: 15px;
+            padding: 8px 18px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background: #f5f5f5;
+            transition: transform 0.04s, background 0.01s;
+        }
+        button:active {
+            transform: scale(0.96);
+            background: #e0e0e0;
+        }
+        .info-popup {
+          background-color: #eff6ff;
+          border: solid 1px #1d4ed8;
+          border-radius: 8px;
+          padding: 12px 16px 12px 14px;
+          margin: 0 auto 12px auto;
+          max-width: 340px;
+          display: block;
+        }
+        .info-message {
+          color: #1d4ed8;
+          font-size: 15px;
+          line-height: 1.7;
+          word-break: break-all;
+          text-align: left;
+        }
+        nav {
+            background: #0066ff;
+            color: #fff;
+            display: block;
+            font-size: 1.3em;
+            padding: 1em;
+            text-align: center;
+        }
+        nav b {
+            display: block;
+            font-size: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        @media (max-width: 480px) {
+            .container {
+                max-width: 98vw;
+                gap: 0px 4px;
+            }
+            .box {
+                width: 38px;
+                height: 38px;
+            }
+            .label {
+                font-size: 11px;
+            }
+            .output {
+                font-size: 13px;
+            }
+            button {
+                font-size: 13px;
+                padding: 7px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>喂食设置</nav>
+    <div class="container-outer">
+        <div class="container">
+            <div class="item"><div class="label">1:00</div><div class="box" data-index="1"></div></div>
+            <div class="item"><div class="label">2:00</div><div class="box" data-index="2"></div></div>
+            <div class="item"><div class="label">3:00</div><div class="box" data-index="3"></div></div>
+            <div class="item"><div class="label">4:00</div><div class="box" data-index="4"></div></div>
+            <div class="item"><div class="label">5:00</div><div class="box" data-index="5"></div></div>
+            <div class="item"><div class="label">6:00</div><div class="box" data-index="6"></div></div>
+            <div class="item"><div class="label">7:00</div><div class="box" data-index="7"></div></div>
+            <div class="item"><div class="label">8:00</div><div class="box" data-index="8"></div></div>
+            <div class="item"><div class="label">9:00</div><div class="box" data-index="9"></div></div>
+            <div class="item"><div class="label">10:00</div><div class="box" data-index="10"></div></div>
+            <div class="item"><div class="label">11:00</div><div class="box" data-index="11"></div></div>
+            <div class="item"><div class="label">12:00</div><div class="box" data-index="12"></div></div>
+            <div class="item"><div class="label">13:00</div><div class="box" data-index="13"></div></div>
+            <div class="item"><div class="label">14:00</div><div class="box" data-index="14"></div></div>
+            <div class="item"><div class="label">15:00</div><div class="box" data-index="15"></div></div>
+            <div class="item"><div class="label">16:00</div><div class="box" data-index="16"></div></div>
+            <div class="item"><div class="label">17:00</div><div class="box" data-index="17"></div></div>
+            <div class="item"><div class="label">18:00</div><div class="box" data-index="18"></div></div>
+            <div class="item"><div class="label">19:00</div><div class="box" data-index="19"></div></div>
+            <div class="item"><div class="label">20:00</div><div class="box" data-index="20"></div></div>
+            <div class="item"><div class="label">21:00</div><div class="box" data-index="21"></div></div>
+            <div class="item"><div class="label">22:00</div><div class="box" data-index="22"></div></div>
+            <div class="item"><div class="label">23:00</div><div class="box" data-index="23"></div></div>
+            <div class="item"><div class="label">24:00</div><div class="box" data-index="24"></div></div>
+        </div>
+    </div>
+    <!-- 信息展示区域 -->
+    <div class="output" id="output"></div>
+    <div class="button-container">
+        <button id="resetBtn">归零</button>
+        <button id="outputBtn">测试输出</button>
+        <button id="backBtn" onclick="location.href='/'">返回主页</button>
+    </div>
+    <script>
+        // 禁用双击缩放
+        let lastTouchEnd = 0;
+        document.querySelectorAll('.box').forEach(box => {
+            box.addEventListener('touchend', function (event) {
+                let now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+        });
+
+        // 工具函数：根据数量返回颜色（0.1~5.0，越大越深，效果更夸张）
+        function getFeedColor(amount) {
+            // 0.1~5.0 映射到 0~1
+            let t = Math.max(0, Math.min(1, (amount - 0.1) / (5.0 - 0.1)));
+            // 1时保持原色，接近0.1时更浅更剧烈
+            let h = 50 - t * 20; // 50~30
+            let l = 58 - t * 16; // 58~42
+            let s = 98 - t * 6;  // 98~92
+            if (amount <= 1.0) {
+                // 0.1~1.0区间，h更偏黄，l更高更浅，s更低
+                let t2 = Math.max(0, Math.min(1, (amount - 0.1) / (1.0 - 0.1)));
+                h = 60 - t2 * 10; // 60~50
+                l = 80 - t2 * 22; // 80~58
+                s = 90 - t2 * 8;  // 90~82
+            }
+            return `hsl(${h}, ${s}%, ${l}%)`;
+        }
+        // 边框色也更夸张
+        function getFeedBorderColor(amount) {
+            let t = Math.max(0, Math.min(1, (amount - 0.1) / (5.0 - 0.1)));
+            // h=40(橙)到h=10(红橙)，l=45%到28%
+            let h = 40 - t * 30; // 40~10
+            let l = 45 - t * 17; // 45~28
+            let s = 100;
+            return `hsl(${h}, ${s}%, ${l}%)`;
+        }
+
+        // 刷新所有方框的颜色
+        function updateLitBoxColors() {
+            document.querySelectorAll('.box').forEach(box => {
+                const hour = box.getAttribute('data-index');
+                let amount = 1.0;
+                if (feedAmounts[hour]) {
+                    if (typeof feedAmounts[hour] === 'object') {
+                        amount = feedAmounts[hour].amount ?? 1.0;
+                    } else {
+                        amount = feedAmounts[hour];
+                    }
+                }
+                if (box.classList.contains('lit')) {
+                    box.style.background = getFeedColor(amount);
+                    box.style.borderColor = getFeedBorderColor(amount);
+                } else {
+                    box.style.background = '';
+                    box.style.borderColor = '';
+                }
+            });
+        }
+
+        // 新增：渲染信息展示块
+        function renderFeedInfoBox() {
+            const litBoxes = [];
+            for (let i = 1; i <= 24; i++) {
+                let box = document.querySelector('.box[data-index="' + i + '"]');
+                if (box && box.classList.contains('lit')) litBoxes.push(i);
+            }
+            litBoxes.sort((a, b) => a - b);
+            
+            let minGap = '-';
+            if (litBoxes.length >= 2) {
+                let min = Infinity;
+                for (let i = 1; i < litBoxes.length; i++) {
+                    let gap = litBoxes[i] - litBoxes[i - 1];
+                    if (gap < min) min = gap;
+                }
+                let wrapGap = (24 - litBoxes[litBoxes.length - 1]) + litBoxes[0];
+                if (wrapGap < min) min = wrapGap;
+                minGap = min;
+            }
+            
+            const infoLines = [
+                litBoxes.length
+                    ? '喂食计划: ' + litBoxes.map(hour => {
+                        let m = (feedAmounts[hour] && typeof feedAmounts[hour].minute === 'number')
+                            ? feedAmounts[hour].minute.toString().padStart(2, '0')
+                            : '00';
+                        return hour + ':' + m + ' 时(' + ((feedAmounts[hour]?.amount ?? 1.0) * 100).toFixed(0) + '%)';
+                    }).join(', ')
+                    : '喂食时间: 无',
+                '喂食次数: ' + litBoxes.length,
+                '最小喂食间距: ' + minGap + ' 时',
+                '总计喂食相对数量: ' + litBoxes.reduce((sum, hour) => sum + (feedAmounts[hour]?.amount ?? 1.0), 0).toFixed(1)
+            ];
+            
+            document.getElementById('output').innerHTML = 
+                '<div class="info-popup">' + 
+                infoLines.map(line => '<div class="info-message">' + line + '</div>').join('') + 
+                '</div>';
+        }
+
+        // 长按弹窗相关
+        let longPressTimer = null;
+        let popupEl = null;
+        // feedAmounts 结构扩展：{hour: {amount, light, water}}
+        let feedAmounts = {}; 
+
+        // 拉取喂食计划（新结构）
+        function loadFeedPlan() {
+            fetch('/feed_plan')
+                .then(res => res.json())
+                .then(json => {
+                    feedAmounts = {};
+                    for (let i = 1; i <= 24; i++) {
+                        let entry = json[i] || {};
+                        let v = Number(entry.amount || 0);
+                        let light = entry.light || 'none';
+                        let water = typeof entry.water === 'number' ? entry.water : 0;
+                        if (v > 0) {
+                            feedAmounts[i] = { amount: v, light, water };
+                            let box = document.querySelector('.box[data-index="' + i + '"]');
+                            if (box) box.classList.add('lit');
+                        } else {
+                            feedAmounts[i] = { amount: 1.0, light: 'none', water: 0 };
+                            let box = document.querySelector('.box[data-index="' + i + '"]');
+                            if (box) box.classList.remove('lit');
+                        }
+                    }
+                    updateLitBoxColors();
+                    renderFeedInfoBox();
+                })
+                .catch(err => {
+                    console.error('Failed to load feed plan:', err);
+                    // 初始化空的喂食计划
+                    for (let i = 1; i <= 24; i++) {
+                        feedAmounts[i] = { amount: 1.0, light: 'none', water: 0 };
+                    }
+                    renderFeedInfoBox();
+                });
+        }
+
+        // 保存喂食计划（新结构）
+        function saveFeedPlan(cb) {
+            let obj = {};
+            for (let i = 1; i <= 24; i++) {
+                let box = document.querySelector('.box[data-index="' + i + '"]');
+                if (box && box.classList.contains('lit')) {
+                    let fa = feedAmounts[i] || { amount: 1.0, light: 'none', water: 0 };
+                    obj[i] = { amount: Number(fa.amount || 1.0), light: fa.light || 'none', water: fa.water || 0 };
+                }
+            }
+            fetch('/feed_plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(obj)
+            }).then(() => {
+                renderFeedInfoBox();
+                if (cb) cb();
+            });
+        }
+
+        function showFeedPopup(hour, boxEl) {
+            // 只允许一个弹窗
+            if (popupEl) {
+                popupEl.remove();
+                popupEl = null;
+            }
+            // 禁止页面滚动
+            document.body.style.overflow = 'hidden';
+
+            // 取当前设置
+            let fa = feedAmounts[hour] || { amount: 1.0, light: 'none', water: 0 };
+            let amount = fa.amount ?? 1.0;
+            let light = fa.light ?? 'none';
+            let water = fa.water ?? 0;
+            let minute = (typeof fa.minute === 'number') ? fa.minute : 0;
+
+            popupEl = document.createElement('div');
+            popupEl.style.position = 'fixed';
+            popupEl.style.left = '0';
+            popupEl.style.top = '0';
+            popupEl.style.width = '100vw';
+            popupEl.style.height = '100vh';
+            popupEl.style.background = 'rgba(0,0,0,0.18)';
+            popupEl.style.display = 'flex';
+            popupEl.style.alignItems = 'center';
+            popupEl.style.justifyContent = 'center';
+            popupEl.style.zIndex = '9999';
+
+            popupEl.innerHTML = `
+        <div style="background:#fff;border-radius:12px;box-shadow:0 2px 16px #0002;padding:22px 22px 18px 22px;min-width:240px;max-width:96vw;">
+            <div style="font-size:17px;font-weight:500;margin-bottom:12px;text-align:center;">
+                <b>${hour}：</b>
+                <input type="number" min="0" max="59" value="${minute.toString().padStart(2, '0')}" id="minuteInput" style="width:48px;font-size:17px;font-weight:bold;text-align:center;border:1px solid #ccc;border-radius:4px;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:15px;font-weight:bold;">喂食相对数量：</label>
+                <input type="range" min="0.1" max="5.0" step="0.1" value="${Number(amount).toFixed(1)}" id="feedAmountRange" style="width:120px;vertical-align:middle;">
+                <input type="number" min="0.1" max="5.0" step="0.1" value="${Number(amount).toFixed(1)}" id="feedAmountInput" style="width:48px;vertical-align:middle;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:15px;font-weight:bold;">灯光效果：</label>
+                <select id="lightEffectSelect" style="font-size:15px;">
+                    <option value="none" ${light === 'none' ? 'selected' : ''}>无</option>
+                    <option value="option1" ${light === 'option1' ? 'selected' : ''}>选项1</option>
+                    <option value="option2" ${light === 'option2' ? 'selected' : ''}>选项2</option>
+                </select>
+            </div>
+            <div style="margin-bottom:18px;">
+                <label style="font-size:15px;font-weight:bold;">水流时间：</label>
+                <input type="range" min="0" max="5" step="1" value="${Number(water)}" id="waterTimeRange" style="width:90px;vertical-align:middle;">
+                <input type="number" min="0" max="5" step="1" value="${Number(water)}" id="waterTimeInput" style="width:38px;vertical-align:middle;">
+                <span style="font-size:13px;">秒</span>
+            </div>
+            <div style="text-align:center;">
+                <button id="closePopupBtn" style="padding:6px 18px;font-size:15px;border-radius:6px;border:1px solid #ccc;background:#f5f5f5;">关闭</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(popupEl);
+
+            // 分钟输入框变化处理
+            const minuteInput = popupEl.querySelector('#minuteInput');
+            minuteInput.oninput = function() {
+                let newMinute = Math.max(0, Math.min(59, Number(this.value) || 0));
+                this.value = newMinute.toString().padStart(2, '0');
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0 };
+                feedAmounts[hour].minute = newMinute;
+                // 更新原始 box 的显示
+                let label = boxEl.previousElementSibling;
+                if (label && label.classList.contains('label')) {
+                    label.textContent = hour + ':' + this.value;
+                }
+                renderFeedInfoBox();
+            };
+
+            // 同步滑块和数字输入
+            const range = popupEl.querySelector('#feedAmountRange');
+            const input = popupEl.querySelector('#feedAmountInput');
+            range.oninput = function() { 
+                input.value = range.value; 
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0 };
+                feedAmounts[hour].amount = Number(range.value);
+                updateLitBoxColors();
+                renderFeedInfoBox();
+            };
+            input.oninput = function() {
+                let v = Math.max(0.1, Math.min(5.0, Number(input.value) || 0.1));
+                input.value = v.toFixed(1);
+                range.value = v.toFixed(1);
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0 };
+                feedAmounts[hour].amount = Number(range.value);
+                updateLitBoxColors();
+                renderFeedInfoBox();
+            };
+            range.onchange = input.onchange = function() {
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0 };
+                feedAmounts[hour].amount = Number(range.value);
+                updateLitBoxColors();
+                renderFeedInfoBox();
+            };
+
+            // 灯光效果下拉框
+            const lightSelect = popupEl.querySelector('#lightEffectSelect');
+            lightSelect.onchange = function() {
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0 };
+                feedAmounts[hour].light = this.value;
+            };
+
+            // 水流时间
+            const waterRange = popupEl.querySelector('#waterTimeRange');
+            const waterInput = popupEl.querySelector('#waterTimeInput');
+            waterRange.oninput = function() {
+                waterInput.value = waterRange.value;
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0 };
+                feedAmounts[hour].water = Number(waterRange.value);
+            };
+            waterInput.oninput = function() {
+                let v = Math.max(0, Math.min(5, Number(waterInput.value) || 0));
+                waterInput.value = v;
+                waterRange.value = v;
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0 };
+                feedAmounts[hour].water = Number(v);
+            };
+            waterRange.onchange = waterInput.onchange = function() {
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0 };
+                feedAmounts[hour].water = Number(waterRange.value);
+            };
+
+            // 关闭弹窗
+            popupEl.querySelector('#closePopupBtn').onclick = function() {
+                popupEl.remove();
+                popupEl = null;
+                document.body.style.overflow = '';
+            };
+            // 点击遮罩关闭
+            popupEl.addEventListener('click', function(e){
+                if(e.target === popupEl){
+                    popupEl.remove();
+                    popupEl = null;
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        // 修改长按事件绑定，添加实时更新
+        document.querySelectorAll('.box').forEach(box => {
+            box.addEventListener('click', function() {
+                this.classList.toggle('lit');
+                updateLitBoxColors();
+                renderFeedInfoBox();
+            });
+            // 长按支持（移动端+PC）
+            let pressStart = null;
+            box.addEventListener('touchstart', function(e){
+                if (popupEl) return;
+                pressStart = Date.now();
+                longPressTimer = setTimeout(() => {
+                    showFeedPopup(box.getAttribute('data-index'), box);
+                }, 500);
+            });
+            box.addEventListener('touchend', function(e){
+                clearTimeout(longPressTimer);
+            });
+            box.addEventListener('touchmove', function(e){
+                clearTimeout(longPressTimer);
+            });
+            box.addEventListener('mousedown', function(e){
+                if (popupEl) return;
+                if (e.button !== 0) return;
+                longPressTimer = setTimeout(() => {
+                    showFeedPopup(box.getAttribute('data-index'), box);
+                }, 500);
+            });
+            box.addEventListener('mouseup', function(e){
+                clearTimeout(longPressTimer);
+            });
+            box.addEventListener('mouseleave', function(e){
+                clearTimeout(longPressTimer);
+            });
+        });
+
+        // 页面初始化 - 确保只调用一次
+        document.addEventListener('DOMContentLoaded', function() {
+            // 先初始化数据
+            for (let i = 1; i <= 24; i++) {
+                feedAmounts[i] = { amount: 1.0, light: 'none', water: 0 };
+            }
+            // 渲染初始状态
+            updateLitBoxColors();
+            renderFeedInfoBox();
+            // 加载保存的数据
+            loadFeedPlan();
+        });
+
+        // 移除重复的事件监听器
+        // window.addEventListener('DOMContentLoaded', function() {
+        //     loadFeedPlan();
+        // });
+
+        // 简化测试输出按钮逻辑
+        document.getElementById('outputBtn').onclick = function() {
+            saveFeedPlan();
+        };
+
+        document.getElementById('resetBtn').onclick = function() {
+            document.querySelectorAll('.box.lit').forEach(box => box.classList.remove('lit'));
+            for (let i = 1; i <= 24; i++) {
+                feedAmounts[i] = { amount: 1.0, light: 'none', water: 0 };
+            }
+            updateLitBoxColors();
+            renderFeedInfoBox();
+            saveFeedPlan();
+        };
+    </script>
+</body>
+</html>
