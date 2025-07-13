@@ -2,7 +2,7 @@
 <html lang="zh-cn">
 <head>
     <meta charset="UTF-8">
-    <title>按钮记忆与回放</title>
+    <title>实验性回放</title>
     <style>
         body {
           background: #f8fafc;
@@ -182,7 +182,7 @@
                 btn.classList.add('active');//电脑点击不会触发CSS.active类
                 updateActiveBtnInfo(getBtnNum(id));
                 btn.click(); //点击
-                setTimeout(() => btn.classList.remove('active'), 150);
+                setTimeout(() => btn.classList.remove('active'), 250);
             }
             document.querySelectorAll('button').forEach(btn => btn.disabled = false);
             document.getElementById('stop-record').disabled = true;

@@ -149,7 +149,7 @@
             <div class="item"><div class="label">24:00</div><div class="box" data-index="24"></div></div>
         </div>
     </div>
-    <!-- 信息展示区域 -->
+    <!--信息区域-->
     <div class="output" id="output"></div>
     <div class="button-container">
         <button id="resetBtn">归零</button>
@@ -157,7 +157,7 @@
         <button id="backBtn" onclick="location.href='/'">返回主页</button>
     </div>
     <script>
-        // 禁用双击缩放
+        //禁用双击缩放,效果一般般
         let lastTouchEnd = 0;
         document.querySelectorAll('.box').forEach(box => {
             box.addEventListener('touchend', function (event) {
@@ -169,7 +169,7 @@
             }, false);
         });
 
-        // 工具函数：根据数量返回颜色（0.1~5.0，越大越深，效果更夸张）
+        //工具函数：根据数量返回颜色（0.1~5.0，越大越深，效果更夸张）
         function getFeedColor(amount) {
             // 0.1~5.0 映射到 0~1
             let t = Math.max(0, Math.min(1, (amount - 0.1) / (5.0 - 0.1)));
@@ -259,13 +259,12 @@
                 '</div>';
         }
 
-        // 长按弹窗相关
+        //---------------------长按弹窗相关
         let longPressTimer = null;
         let popupEl = null;
-        // feedAmounts 结构扩展：{hour: {amount, light, water}}
         let feedAmounts = {}; 
 
-        // 拉取喂食计划（新结构）
+        //拉取喂食计划
         function loadFeedPlan() {
             fetch('/feed_plan')
                 .then(res => res.json())
@@ -291,7 +290,7 @@
                 })
                 .catch(err => {
                     console.error('Failed to load feed plan:', err);
-                    // 初始化空的喂食计划
+                    //初始化空喂食计划
                     for (let i = 1; i <= 24; i++) {
                         feedAmounts[i] = { amount: 1.0, light: 'none', water: 0 };
                     }
@@ -299,7 +298,7 @@
                 });
         }
 
-        // 保存喂食计划（新结构）
+        //保存喂食计划
         function saveFeedPlan(cb) {
             let obj = {};
             for (let i = 1; i <= 24; i++) {
@@ -320,15 +319,15 @@
         }
 
         function showFeedPopup(hour, boxEl) {
-            // 只允许一个弹窗
+            //只允许一个弹窗
             if (popupEl) {
                 popupEl.remove();
                 popupEl = null;
             }
-            // 禁止页面滚动
+            //禁止滚动
             document.body.style.overflow = 'hidden';
 
-            // 取当前设置
+            //拿到当前设置
             let fa = feedAmounts[hour] || { amount: 1.0, light: 'none', water: 0 };
             let amount = fa.amount ?? 1.0;
             let light = fa.light ?? 'none';
@@ -379,14 +378,14 @@
     `;
     document.body.appendChild(popupEl);
 
-            // 分钟输入框变化处理
+            //分钟输入框变化处理
             const minuteInput = popupEl.querySelector('#minuteInput');
             minuteInput.oninput = function() {
                 let newMinute = Math.max(0, Math.min(59, Number(this.value) || 0));
                 this.value = newMinute.toString().padStart(2, '0');
                 if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0 };
                 feedAmounts[hour].minute = newMinute;
-                // 更新原始 box 的显示
+                //更新原始 box 的显示
                 let label = boxEl.previousElementSibling;
                 if (label && label.classList.contains('label')) {
                     label.textContent = hour + ':' + this.value;
@@ -394,14 +393,14 @@
                 renderFeedInfoBox();
             };
 
-            // 同步滑块和数字输入
+            //同步滑块和数字输入
             const range = popupEl.querySelector('#feedAmountRange');
             const input = popupEl.querySelector('#feedAmountInput');
             range.oninput = function() { 
                 input.value = range.value; 
                 if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0 };
                 feedAmounts[hour].amount = Number(range.value);
-                updateLitBoxColors();
+                updateLitBoxColors();//立即更新颜色显示
                 renderFeedInfoBox();
             };
             input.oninput = function() {
@@ -420,14 +419,14 @@
                 renderFeedInfoBox();
             };
 
-            // 灯光效果下拉框
+            //灯光效果下拉框
             const lightSelect = popupEl.querySelector('#lightEffectSelect');
             lightSelect.onchange = function() {
                 if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0 };
                 feedAmounts[hour].light = this.value;
             };
 
-            // 水流时间
+            //水流时间
             const waterRange = popupEl.querySelector('#waterTimeRange');
             const waterInput = popupEl.querySelector('#waterTimeInput');
             waterRange.oninput = function() {
@@ -447,15 +446,15 @@
                 feedAmounts[hour].water = Number(waterRange.value);
             };
 
-            // 关闭弹窗
+            //关闭弹窗
             popupEl.querySelector('#closePopupBtn').onclick = function() {
                 popupEl.remove();
                 popupEl = null;
                 document.body.style.overflow = '';
             };
-            // 点击遮罩关闭
+            //点击遮罩关闭
             popupEl.addEventListener('click', function(e){
-                if(e.target === popupEl){
+                if(e.target === popupEl){//当目标为“弹窗元素”，指的是弹窗外的区域
                     popupEl.remove();
                     popupEl = null;
                     document.body.style.overflow = '';
@@ -463,14 +462,14 @@
             });
         }
 
-        // 修改长按事件绑定，添加实时更新
+        //实时更新
         document.querySelectorAll('.box').forEach(box => {
             box.addEventListener('click', function() {
                 this.classList.toggle('lit');
                 updateLitBoxColors();
                 renderFeedInfoBox();
             });
-            // 长按支持（移动端+PC）
+            //长按支持
             let pressStart = null;
             box.addEventListener('touchstart', function(e){
                 if (popupEl) return;

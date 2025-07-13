@@ -6,7 +6,6 @@
 #include <DNSServer.h> 
 #include <ESP8266WebServer.h>
 #include <EEPROM.h>
-// #include <ArduinoJson.h> // 新增：用于JSON解析
 
 // Default SSID name
 const char* SSID_NAME = "喂食器设置"; // 默认SSID名称
@@ -41,14 +40,14 @@ float feedInterval = 12.0;
 float feedAmount = 1.0;
 int blinkTimes = 3;
 
-// EEPROM参数存储地址
-#define FEED_PLAN_BYTES_PER_HOUR 3
-#define EEPROM_SIZE (16 + 24 * FEED_PLAN_BYTES_PER_HOUR) // 16为参数区，后面为喂食计划区
+//EEPROM参数存储地址
+#define FEED_PLAN_BYTES_PER_HOUR 4 // 由3改为4，增加minute字段
+#define EEPROM_SIZE (16 + 24 * FEED_PLAN_BYTES_PER_HOUR) //16参数区，后面为喂食计划区
 #define ADDR_MAGIC 0
 #define ADDR_INTERVAL 4
 #define ADDR_AMOUNT 8
 #define ADDR_BLINK 12
-#define ADDR_FEED_PLAN 16 // 新增：喂食计划起始地址
+#define ADDR_FEED_PLAN 16 //喂食计划起始地址
 #define MAGIC_VALUE 0xA5A5A5A5
 
 //工具函数
@@ -69,7 +68,7 @@ void tryConnectWifi() {
       
       configTime(8 * 3600, 0, "ntp.aliyun.com", "pool.ntp.org"); //！！！连接阿里云获取时间
       // 时区偏移（秒），夏令时偏移，NTP服务器域名
-      // 事实上，我们还可以使用手机时间，用js即可获取。但我们不希望需要经常打开手机校准
+      // 事实上，我们还可以使用手机时间，用js即可获取。但我不希望需要经常打开手机校准
       wifiConnected = true;
       break;
     }
@@ -116,7 +115,7 @@ void loadParams() {
 void PRIN() {
   Serial.print(loadFeedPlanJson() + "E");
 }
-//保存喂食计划到EEPROM，支持 {"1":{"amount":1.0,"light":xxx,"water":yyy}, ...}
+//保存喂食计划到EEPROM，支持 {"1":{"amount":1.0,"light":xxx,"water":yyy,"minute":mm}, ...}
 void saveFeedPlan(const String& json) {
   // 只输出喂食计划JSON，不包含其他信息
 
@@ -126,7 +125,7 @@ void saveFeedPlan(const String& json) {
     float amount = 0.0;
     int light_mode = 0;
     int water_duration = 0;
-    int minute_value = 0; // 新增：分钟值
+    int minute_value = 0;
     if (idx >= 0) {
       int objStart = json.indexOf("{", idx);
       int objEnd = json.indexOf("}", objStart);
@@ -179,7 +178,7 @@ void saveFeedPlan(const String& json) {
           water_duration = String(objStr.substring(valStart, valEnd)).toInt();
         }
       }
-      // minute - 新增：解析分钟值
+      //解析分钟值
       int minuteIdx = objStr.indexOf("\"minute\":");
       if (minuteIdx >= 0) {
         int valStart = minuteIdx + 9;
@@ -190,7 +189,7 @@ void saveFeedPlan(const String& json) {
         }
       }
     }
-    // 存储 - 扩展存储结构以包含分钟值
+    //存储
     uint8_t v = 0;
     if (amount >= 0.1) {
       v = (uint8_t)(amount * 10.0 + 0.5);
@@ -200,12 +199,12 @@ void saveFeedPlan(const String& json) {
     EEPROM.write(base, v);
     EEPROM.write(base + 1, (uint8_t)light_mode);
     EEPROM.write(base + 2, (uint8_t)water_duration);
-    // 注意：当前结构只有3字节，如需存储分钟值需要扩展结构
+    EEPROM.write(base + 3, (uint8_t)minute_value);
   }
   EEPROM.commit();
 }
 
-// 读取喂食计划为JSON字符串，格式为 {"1":{"amount":1.0,"light":"0","water":2}, ...}，只包含有喂食计划的小时
+// 读取喂食计划为JSON字符串，格式为 {"1":{"amount":1.0,"light":"0","water":2,"minute":0}, ...}，只包含有喂食计划的小时
 String loadFeedPlanJson() {
   String json = "{";
   bool first = true;
@@ -214,13 +213,14 @@ String loadFeedPlanJson() {
     uint8_t v = EEPROM.read(base);
     uint8_t light_mode = EEPROM.read(base + 1);
     uint8_t water_duration = EEPROM.read(base + 2);
+    uint8_t minute_value = EEPROM.read(base + 3);
     if (v > 0) { // 只包含有喂食计划的小时
       float amount = v / 10.0;
-      // 修复：输出数字字符串格式
+      //输出数字字符串格式
       String lightStr = String(light_mode); // 直接使用数字字符串
-      // 只包含有喂食计划的小时
+      //只包含有喂食计划的小时
       if (!first) json += ",";
-      json += "\"" + String(i) + "\":{\"amount\":" + String(amount, 1) + ",\"light\":\"" + lightStr + "\",\"water\":" + String(water_duration) + "}";
+      json += "\"" + String(i) + "\":{\"amount\":" + String(amount, 1) + ",\"light\":\"" + lightStr + "\",\"water\":" + String(water_duration) + ",\"minute\":" + String(minute_value) + "}";
       first = false;
     }
   }
@@ -315,7 +315,7 @@ String header(String t) {
   return h;
 }
 
-// 主页面，包含三个输入框和提交按钮，按钮禁用2秒，并显示网络连接状态和WiFi设置按钮
+//主页面，网络连接状态和WiFi设置按钮，灯光模式按钮
 String index() {
   // 插入 info-popup 样式
   String infoPopupCSS =
@@ -351,7 +351,7 @@ String index() {
     "xhr.send('');" // 添加这行，发送空数据
     "return false;"
     "}"
-    // 新增：拉取喂食计划并渲染 info-popup
+    //拉取喂食计划并渲染 info-popup
     "function renderFeedInfoBox(plan) {"
     "  var feedAmounts = {};"
     "  var litBoxes = [];"
@@ -387,16 +387,37 @@ String index() {
     "}"
     "window.addEventListener('DOMContentLoaded',loadFeedPlanForIndex);"
     "</script>";
-  //显示网络连接状态和WiFi设置按钮
+  //网络连接状态和WiFi设置按钮
   String wifiBtn = "<div style='margin:1em 0;display:inline-block'><a href='/wifi'><button type='button'>WiFi设置</button></a></div>";
-  // 新增：喂食设置按钮
+  //喂食界面按钮
   String feedBtn = "<div style='margin:1em 0;display:inline-block'><a href='/feed'><button type='button'>喂食设置</button></a></div>";
-  String connStatus = wifiBtn + feedBtn + "<div>互联网：" + getConnStatusText() + "</div>";
-  //显示当前时间
+  //灯光样式下拉框
+  String lightStyleSelect =
+    "<div style='margin:1em 0;display:inline-block'>"
+    "<label style='font-weight:bold;'>灯光样式：</label>"
+    "<select id='lightStyleSelect' style='font-size:16px;padding:4px 10px;border-radius:6px;'>"
+    "<option value='1'" + String(currentLightStyle == 1 ? " selected" : "") + ">红霞</option>"
+    "<option value='2'" + String(currentLightStyle == 2 ? " selected" : "") + ">蓝海</option>"
+    "<option value='0'" + String(currentLightStyle == 0 ? " selected" : "") + ">霓虹</option>"
+    "</select>"
+    "</div>";
+  String connStatus = lightStyleSelect + wifiBtn + feedBtn + "<div>互联网：" + getConnStatusText() + "</div>";
+  //时间
   String timeStatus = "<div>当前校准时间：" + currentTimeStr + "</div>";
-  // info-popup 容器
   String feedInfoDiv = "<div id='feedInfoBox'></div>";
-  // 修复：补全 HTML 结构
+  //监听下拉框变化并请求/set_light_style
+  String lightJs =
+    "<script>"
+    "document.addEventListener('DOMContentLoaded',function(){"
+    "var sel=document.getElementById('lightStyleSelect');"
+    "if(sel){"
+    "sel.addEventListener('change',function(){"
+    "var v=sel.value;"
+    "fetch('/set_light_style',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'style='+encodeURIComponent(v)});"
+    "});"
+    "}"
+    "});"
+    "</script>";
   return header(TITLE) +
     "<style>" + infoPopupCSS + "</style>" +
     "<div>" + BODY + "</div>" +
@@ -404,9 +425,10 @@ String index() {
     feedInfoDiv +
     "<div><form onsubmit='return disableBtn()'>"
     "<button id='submitBtn' type='submit'>保存并提交</button>"
-    "</form></div>" + js + "</body></html>";
+    "</form></div>" + js + lightJs + "</body></html>";
 }
 //WiFi设置页面
+
 String wifiPage() {
   String js =
    "<script>"
@@ -1001,24 +1023,24 @@ const char* feedSettingPage() {
 }
 
 void setup() {
-  // 初始化串口，方便调试输出
+  //初始化串口，方便调试输出
   Serial.begin(115200);
 
-  // 初始化EEPROM
+  //初始化EEPROM
   EEPROM.begin(EEPROM_SIZE);
-  loadParams(); // 启动时加载参数
+  loadParams(); //启动时加载参数
 
-  // 设置为AP+STA混合模式
+  //设置为AP+STA混合模式
   WiFi.mode(WIFI_AP_STA);
   WiFi.softAPConfig(APIP, APIP, IPAddress(255, 255, 255, 0));//IP 网关 子网掩码
 
-  // 启动WiFi热点
+  //启动WiFi热点
   WiFi.softAP(SSID_NAME);  
 
-  // 启动DNS服务器，实现DNS欺骗（所有域名都指向本机IP）
+  //启动DNS服务器，实现DNS欺骗（所有域名都指向本机IP）
   dnsServer.start(DNS_PORT, "*", APIP);
 
-  // 配置Web服务器的路由
+  //配置Web服务器的路由
   webServer.on("/post",[]() { 
     webServer.send(HTTP_CODE, "text/html", posted());
   });
@@ -1033,11 +1055,11 @@ void setup() {
     tryConnectWifi();
     webServer.send(HTTP_CODE, "text/html", wifiPage());
   });
-  // 新增：喂食设置页面
+  //喂食设置页面
   webServer.on("/feed", []() {
     webServer.send_P(HTTP_CODE, "text/html", FEED_SETTING_HTML);
   });
-  // 新增：喂食计划接口
+  //喂食计划接口
   webServer.on("/feed_plan", HTTP_GET, []() {
     webServer.send(200, "application/json", loadFeedPlanJson());
   });
@@ -1045,6 +1067,15 @@ void setup() {
     String body = webServer.arg("plain");
     saveFeedPlan(body);
     PRIN();
+    webServer.send(200, "text/plain", "OK");
+  });
+  //灯光样式串口打印
+  webServer.on("/set_light_style", HTTP_POST, []() {
+    String styleStr = webServer.arg("style");
+    int style = styleStr.toInt();
+    if (style < 0 || style > 2) style = 0;
+    currentLightStyle = style;
+    Serial.print("L" + String(style) + "E");
     webServer.send(200, "text/plain", "OK");
   });
   webServer.onNotFound([]() { 
