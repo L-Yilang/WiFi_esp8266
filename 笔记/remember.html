@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>按钮记忆与回放</title>
+    <style>
+        body {
+          background: #f8fafc;
+          font-family: "Segoe UI", "PingFang SC", Arial, sans-serif;
+        }
+        .top-bar {
+            margin: 30px auto 36px auto; /* 修改底部间距为36px */
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 90px);
+            grid-gap: 18px;
+            width: max-content;
+            margin: 0 auto 24px auto;
+            justify-content: center;
+        }
+        button {
+            width: 100px;
+            height: 56px;
+            font-size: 20px;
+            border: none;
+            border-radius: 12px;
+            background: #e3e3e3;
+            color: #1e293b;
+            box-shadow: 0 2px 8px #0001;
+            transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+            cursor: pointer;
+            outline: none;
+        }
+        button:active, button.active {
+            background: linear-gradient(180deg, #fecaca 0%, #f87171 100%);
+            color: #b91c1c;
+            box-shadow: 0 2px 12px #f8717140;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .info-popup {
+          background-color: #eff6ff;
+          border: solid 1px #1d4ed8;
+          border-radius: 8px;
+          padding: 12px 16px 12px 14px;
+          margin: 0 auto 12px auto;
+          max-width: 340px;
+          display: block;
+        }
+        .info-message {
+          color: #1d4ed8;
+          font-size: 15px;
+          line-height: 1.7;
+          word-break: break-all;
+          text-align: left;
+        }
+        .active-btn-popup {
+          background-color: #fee2e2;
+          border: solid 1px #dc2626;
+          border-radius: 8px;
+          padding: 12px 16px 12px 14px;
+          margin: 0 auto 12px auto;
+          max-width: 340px;
+          display: block;
+        }
+        .active-btn-message {
+          color: #dc2626;
+          font-size: 16px;
+          font-weight: bold;
+          line-height: 1.7;
+          word-break: break-all;
+          text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <button id="start-record">记忆</button>
+        <button id="stop-record" disabled>停止记忆</button>
+        <button id="play-script">执行脚本</button>
+    </div>
+    <div class="grid">
+        <button id="btn1">按钮1</button>
+        <button id="btn2">按钮2</button>
+        <button id="btn3">按钮3</button>
+        <button id="btn4">按钮4</button>
+        <button id="btn5">按钮5</button>
+        <button id="btn6">按钮6</button>
+        <button id="btn7">按钮7</button>
+        <button id="btn8">按钮8</button>
+        <button id="btn9">按钮9</button>
+    </div>
+    <div class="info-popup">
+        <div class="info-message" id="record-info"></div>
+    </div>
+    <div class="active-btn-popup">
+        <div class="active-btn-message" id="active-btn-info">当前按钮：</div>
+    </div>
+
+    <script>
+        const buttonIds = [
+            "btn1", "btn2", "btn3",
+            "btn4", "btn5", "btn6",
+            "btn7", "btn8", "btn9"
+        ];
+        let recording = false;
+        let recordStartTime = 0;
+        let actions = [];
+
+        //按钮编号映射
+        function getBtnNum(id) {
+            return id.replace('btn', '');
+        }
+
+        //更新记忆内容显示
+        function updateRecordInfo() {
+            let html = '当前记忆：<br>';
+            let total = 0;
+            actions.forEach((act, idx) => {
+                total += act.time;
+                const sec = (act.time / 1000).toFixed(2).replace(/\.?0+$/, '');
+                html += `（+${sec}s）按钮${getBtnNum(act.id)}<br>`;
+            });
+            document.getElementById('record-info').innerHTML = html;
+        }
+
+        //当前按钮显示
+        function updateActiveBtnInfo(num) {
+            document.getElementById('active-btn-info').textContent = `当前按钮：${num}`;
+        }
+
+        //绑定按钮事件
+        buttonIds.forEach(id => {
+            const btn = document.getElementById(id);
+            btn.addEventListener('click', () => {
+                const num = getBtnNum(id);
+                updateActiveBtnInfo(num);
+                if (recording) {
+                    const now = performance.now();
+                    const time = now - recordStartTime;
+                    actions.push({id, time});
+                    recordStartTime = now;
+                    updateRecordInfo();
+                }
+            });
+            //按下变红
+            btn.addEventListener('mousedown', () => btn.classList.add('active'));
+            btn.addEventListener('mouseup', () => btn.classList.remove('active'));
+            btn.addEventListener('mouseleave', () => btn.classList.remove('active'));
+            btn.addEventListener('touchstart', () => btn.classList.add('active'));
+            btn.addEventListener('touchend', () => btn.classList.remove('active'));
+        });
+
+        document.getElementById('start-record').onclick = function() {
+            recording = true;
+            actions = [];
+            recordStartTime = performance.now();
+            this.disabled = true;
+            document.getElementById('stop-record').disabled = false;
+            document.getElementById('record-info').innerHTML = '';
+        };
+
+        document.getElementById('stop-record').onclick = function() {
+            recording = false;
+            this.disabled = true;
+            document.getElementById('start-record').disabled = false;
+        };
+
+        document.getElementById('play-script').onclick = async function() {
+            if (actions.length === 0) return;
+            document.querySelectorAll('button').forEach(btn => btn.disabled = true);
+            let prevTime = 0;
+            for (let i = 0; i < actions.length; i++) {
+                const {id, time} = actions[i];
+                const delay = i === 0 ? 0 : time;
+                await new Promise(res => setTimeout(res, delay));
+                const btn = document.getElementById(id);
+                btn.classList.add('active');//电脑点击不会触发CSS.active类
+                updateActiveBtnInfo(getBtnNum(id));
+                btn.click(); //点击
+                setTimeout(() => btn.classList.remove('active'), 150);
+            }
+            document.querySelectorAll('button').forEach(btn => btn.disabled = false);
+            document.getElementById('stop-record').disabled = true;
+            document.getElementById('start-record').disabled = false;
+        };
+    </script>
+</body>
+</html>
