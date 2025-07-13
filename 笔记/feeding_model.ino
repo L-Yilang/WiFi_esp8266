@@ -287,7 +287,7 @@ void setup() {
 
 ///--------------------------------------固定结构，主循环
 void loop() { 
-  // 每隔TICK_TIMER毫秒更新时间
+  //每隔TICK_TIMER毫秒更新时间
   if ((millis() - lastTick) > TICK_TIMER) {
     lastTick = millis();
     if (wifiConnected){
@@ -295,8 +295,8 @@ void loop() {
     }
     // 这里可以添加定时任务
   }
-  // 处理DNS请求，实现劫持
+  //处理DNS请求，实现劫持
   dnsServer.processNextRequest();
-  // 处理HTTP请求
+  //处理HTTP请求
   webServer.handleClient();
 }

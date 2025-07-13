@@ -1081,24 +1081,25 @@ void setup() {
   webServer.onNotFound([]() { 
     webServer.send(HTTP_CODE, "text/html", index());
   });
-  webServer.begin(); // 启动Web服务器
 
-  // 配置并点亮板载LED（高电平熄灭，低电平点亮，具体看硬件）
-  pinMode(BUILTIN_LED, OUTPUT);
-  digitalWrite(BUILTIN_LED, HIGH); // 默认关闭LED
+
+
+
+  webServer.begin(); //启动Web服务器
 }
 
 void loop() { 
-  // 每隔TICK_TIMER毫秒更新时间
+  //服务器主循环
+  //每隔TICK_TIMER毫秒更新时间
   if ((millis() - lastTick) > TICK_TIMER) {
     lastTick = millis();
     if (wifiConnected){
-      printCurrentTime(); //十秒打印一次
+      printCurrentTime(); //打印
     }
-    // 这里可以添加定时任务
+    //这里可以添加定时任务
   }
-  // 处理DNS请求，实现劫持
+  //处理DNS请求，实现劫持
   dnsServer.processNextRequest();
-  // 处理HTTP请求
+  //处理HTTP请求
   webServer.handleClient();
 }
