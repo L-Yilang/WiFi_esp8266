@@ -281,6 +281,7 @@ document.getElementById('play-script').onclick = async function() {
         const btn = document.getElementById(id);
         btn.classList.add('active');
         updateActiveBtnInfo(getBtnNum(id));
+        fetch('/btn?num=' + encodeURIComponent(getBtnNum(id)));
         //
         if (recording) {
             const now = performance.now();
