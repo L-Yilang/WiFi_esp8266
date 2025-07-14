@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+<meta charset="UTF-8">
+<title>实验性回放</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+body { 
+    background: #f8fafc; 
+    font-family: "Segoe UI", "PingFang SC", Arial, sans-serif; 
+    padding: 18px 0px; 
+    box-sizing: border-box;
+}
+.top-bar { 
+    margin: 30px auto 36px auto; 
+    text-align: center; 
+    max-width: 380px;
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 90px);
+    grid-gap: 18px;
+    width: max-content;
+    margin: 0 auto 24px auto;
+    justify-content: center;
+    max-width: 380px; 
+}
+button {
+    width: 100px;
+    height: 56px;
+    font-size: 20px;
+    border: none;
+    border-radius: 12px;
+    background: #e3e3e3;
+    color: #1e293b;
+    box-shadow: 0 2px 8px #0001;
+    transition: background 0.12s, color 0.12s, box-shadow 0.12s;
+    cursor: pointer;
+    outline: none;
+}
+button:active, button.active { background: linear-gradient(180deg, #fecaca 0%, #f87171 100%); color: #b91c1c; box-shadow: 0 2px 12px #f8717140; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.info-popup { 
+    background-color: #eff6ff; 
+    border: solid 1px #1d4ed8; 
+    border-radius: 8px; 
+    padding: 12px 16px 12px 14px; 
+    margin: 0 auto 12px auto; 
+    max-width: 340px; 
+    display: block; 
+    box-sizing: border-box;
+}
+.info-message { color: #1d4ed8; font-size: 15px; line-height: 1.7; word-break: break-all; text-align: left; }
+.active-btn-popup { 
+    background-color: #fee2e2; 
+    border: solid 1px #dc2626; 
+    border-radius: 8px; 
+    padding: 12px 16px 12px 14px; 
+    margin: 0 auto 12px auto; 
+    max-width: 340px; 
+    display: block; 
+    box-sizing: border-box;
+}
+.active-btn-message { color: #dc2626; font-size: 16px; font-weight: bold; line-height: 1.7; word-break: break-all; text-align: left; }
+.save-bar { 
+    text-align:center; 
+    margin: 0 0 18px 0; 
+    max-width: 400px; 
+    margin-left: auto; 
+    margin-right: auto;
+}
+textarea { 
+    width: 98%; 
+    min-height: 60px; 
+    border-radius: 8px; 
+    border: 1px solid #bbb; 
+    font-size: 15px; 
+    padding: 7px; 
+    display:none; 
+}
+#script-msg { color: #059669; font-size: 15px; margin-left: 8px; }
+
+/* 响应式适配手机 */
+@media (max-width: 600px) {
+    body {
+        padding: 8px 0;
+    }
+    .top-bar { 
+        margin: 18px auto 20px auto; 
+        max-width: 98vw;
+    }
+    .grid {
+        grid-template-columns: repeat(3, 1fr);
+        grid-gap: 10px;
+        width: 98vw;
+        max-width: 360px;
+        margin: 0 auto 18px auto;
+    }
+    button {
+        width: 100%;
+        min-width: 0;
+        height: 44px;
+        font-size: 17px;
+        border-radius: 10px;
+        padding: 0;
+    }
+    .info-popup, .active-btn-popup {
+        max-width: 98vw;
+        font-size: 14px;
+        padding: 8px 8px 8px 8px;
+    }
+    .info-message, .active-btn-message {
+        font-size: 14px;
+    }
+    .save-bar {
+        margin-bottom: 12px;
+        max-width: 98vw;
+    }
+    textarea {
+        font-size: 14px;
+        padding: 5px;
+    }
+}
+</style>
+</head>
+<body>
+<div class="top-bar">
+    <button id="start-record">记忆</button>
+    <button id="stop-record" disabled>停止记忆</button>
+    <button id="play-script">执行</button>
+</div>
+<div class="grid">
+    <button id="btn1">按钮1</button>
+    <button id="btn2">按钮2</button>
+    <button id="btn3">按钮3</button>
+    <button id="btn4">按钮4</button>
+    <button id="btn5">按钮5</button>
+    <button id="btn6">按钮6</button>
+    <button id="btn7">按钮7</button>
+    <button id="btn8">按钮8</button>
+    <button id="btn9">按钮9</button>
+</div>
+<div class="info-popup">
+    <div class="info-message" id="record-info"></div>
+</div>
+<div class="active-btn-popup">
+    <div class="active-btn-message" id="active-btn-info">当前按钮：</div>
+</div>
+<div class="save-bar">
+  <form id="script-form" method="POST" action="/save">
+    <label style="display:none;">脚本内容（可编辑，格式：id,time|id,time...）：</label>
+    <textarea name="script" id="script-area"></textarea>
+    <button type="submit" id="save-btn">存储</button>
+    <button type="button" id="load-btn">读取</button>
+    <span id="script-msg"></span>
+  </form>
+</div>
+<script>
+const buttonIds = [
+    "btn1", "btn2", "btn3",
+    "btn4", "btn5", "btn6",
+    "btn7", "btn8", "btn9"
+];
+let recording = false;
+let recordStartTime = 0;
+let actions = [];
+function getBtnNum(id) { return id.replace('btn', ''); }
+function updateRecordInfo() {
+    let html = '当前记忆：<br>';
+    let total = 0;
+    actions.forEach((act, idx) => {
+        total += act.time;
+        const sec = (act.time / 1000).toFixed(2).replace(/\.?0+$/, '');
+        html += `（+${sec}s）按钮${getBtnNum(act.id)}<br>`;
+    });
+    document.getElementById('record-info').innerHTML = html;
+    let txt = actions.map(a => getBtnNum(a.id) + ',' + a.time).join('|');
+    document.getElementById('script-area').value = txt;
+}
+function updateActiveBtnInfo(num) {
+    document.getElementById('active-btn-info').textContent = `当前按钮：${num}`;
+}
+buttonIds.forEach(id => {
+    const btn = document.getElementById(id);
+    function handlePress(e) {
+        e && e.preventDefault && e.preventDefault();
+        e && e.stopPropagation && e.stopPropagation();
+        const num = getBtnNum(id);
+        updateActiveBtnInfo(num);
+        //点击按钮时通知后端串口打印编号
+        fetch('/btn?num=' + encodeURIComponent(num));
+        if (recording) {
+            const now = performance.now();
+            const time = now - recordStartTime;
+            actions.push({id, time: Math.round(time)});
+            recordStartTime = now;
+            updateRecordInfo();
+        }
+        btn.classList.add('active');
+        setTimeout(() => btn.classList.remove('active'), 180);
+    }
+
+    if ('ontouchstart' in window) {
+        btn.addEventListener('touchstart', handlePress);
+    } else {
+        btn.addEventListener('mousedown', handlePress);
+    }
+    btn.addEventListener('mouseup', () => btn.classList.remove('active'));
+    btn.addEventListener('mouseleave', () => btn.classList.remove('active'));
+    btn.addEventListener('touchend', () => btn.classList.remove('active'));
+});
+document.getElementById('start-record').onclick = function() {
+    recording = true;
+    actions = [];
+    recordStartTime = performance.now();
+    this.disabled = true;
+    document.getElementById('stop-record').disabled = false;
+    document.getElementById('record-info').innerHTML = '';
+};
+document.getElementById('stop-record').onclick = function() {
+    recording = false;
+    this.disabled = true;
+    document.getElementById('start-record').disabled = false;
+};
+document.getElementById('play-script').onclick = async function() {
+    let txt = document.getElementById('script-area').value.trim();
+    if (!txt) return;
+    let arr = txt.split('|').map(s => {
+        let [id, t] = s.split(',');
+        return {id: 'btn'+id, time: parseInt(t)};
+    });
+    document.querySelectorAll('.grid button').forEach(btn => btn.disabled = true);
+    for (let i = 0; i < arr.length; i++) {
+        const {id, time} = arr[i];
+        const delay = i === 0 ? 0 : time;
+        await new Promise(res => setTimeout(res, delay));
+        const btn = document.getElementById(id);
+        btn.classList.add('active');
+        updateActiveBtnInfo(getBtnNum(id));
+        //
+        if (recording) {
+            const now = performance.now();
+            const t = now - recordStartTime;
+            actions.push({id, time: Math.round(t)});
+            recordStartTime = now;
+            updateRecordInfo();
+        }
+        setTimeout(() => btn.classList.remove('active'), 150);
+    }
+    document.querySelectorAll('.grid button').forEach(btn => btn.disabled = false);
+    document.getElementById('stop-record').disabled = true;
+    document.getElementById('start-record').disabled = false;
+};
+//保存脚本
+document.getElementById('script-form').onsubmit = function(e) {
+    e.preventDefault();
+    let txt = document.getElementById('script-area').value;
+    fetch('/save', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'script=' + encodeURIComponent(txt)
+    }).then(r => r.text()).then(msg => {
+        document.getElementById('script-msg').textContent = msg;
+        setTimeout(()=>{document.getElementById('script-msg').textContent='';}, 1200);
+    });
+};
+//读取脚本
+document.getElementById('load-btn').onclick = function() {
+    fetch('/load').then(r => r.text()).then(txt => {
+        document.getElementById('script-area').value = txt;
+        document.getElementById('script-msg').textContent = "已读取";
+        //解析txt并显示到当前记忆
+        actions = [];
+        if (txt.trim()) {
+            txt.trim().split('|').forEach(function(pair) {
+                let arr = pair.split(',');
+                if (arr.length === 2) {
+                    actions.push({id: 'btn'+arr[0], time: parseInt(arr[1])});
+                }
+            });
+        }
+        updateRecordInfo();
+        setTimeout(()=>{document.getElementById('script-msg').textContent='';}, 1200);
+    });
+};
+window.onload = function() {
+    //页面加载时自动填充脚本
+    fetch('/load').then(r => r.text()).then(txt => {
+        document.getElementById('script-area').value = txt;
+    });
+};
+</script>
+</body>
+</html>

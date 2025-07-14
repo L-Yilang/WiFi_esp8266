@@ -40,15 +40,18 @@ float feedInterval = 12.0;
 float feedAmount = 1.0;
 int blinkTimes = 3;
 
+// 新增：灯光样式变量
+int currentLightStyle = 0;
+
 //EEPROM参数存储地址
-#define FEED_PLAN_BYTES_PER_HOUR 4 // 由3改为4，增加minute字段
+#define FEED_PLAN_BYTES_PER_HOUR 4 //增加minute字段
 #define EEPROM_SIZE (16 + 24 * FEED_PLAN_BYTES_PER_HOUR) //16参数区，后面为喂食计划区
 #define ADDR_MAGIC 0
 #define ADDR_INTERVAL 4
 #define ADDR_AMOUNT 8
 #define ADDR_BLINK 12
 #define ADDR_FEED_PLAN 16 //喂食计划起始地址
-#define MAGIC_VALUE 0xA5A5A5A5
+#define MAGIC_VALUE 0xA5A5A5
 
 //工具函数
 void tryConnectWifi() {
@@ -165,7 +168,7 @@ void saveFeedPlan(const String& json) {
           // 直接解析数字字符串
           light_mode = lightStr.toInt();
           // 确保值在有效范围内
-          if (light_mode < 0 || light_mode > 2) light_mode = 0;
+          if (light_mode < 0 || light_mode > 5) light_mode = 0;
         }
       }
       // water
@@ -204,7 +207,7 @@ void saveFeedPlan(const String& json) {
   EEPROM.commit();
 }
 
-// 读取喂食计划为JSON字符串，格式为 {"1":{"amount":1.0,"light":"0","water":2,"minute":0}, ...}，只包含有喂食计划的小时
+// 读取喂食计划为JSON字符串，格式为 {"1":{"amount":1.0,"light":0,"water":2,"minute":0}, ...}，只包含有喂食计划的小时
 String loadFeedPlanJson() {
   String json = "{";
   bool first = true;
@@ -216,11 +219,10 @@ String loadFeedPlanJson() {
     uint8_t minute_value = EEPROM.read(base + 3);
     if (v > 0) { // 只包含有喂食计划的小时
       float amount = v / 10.0;
-      //输出数字字符串格式
-      String lightStr = String(light_mode); // 直接使用数字字符串
+      //输出数字格式
       //只包含有喂食计划的小时
       if (!first) json += ",";
-      json += "\"" + String(i) + "\":{\"amount\":" + String(amount, 1) + ",\"light\":\"" + lightStr + "\",\"water\":" + String(water_duration) + ",\"minute\":" + String(minute_value) + "}";
+      json += "\"" + String(i) + "\":{\"amount\":" + String(amount, 1) + ",\"light\":" + String(light_mode) + ",\"water\":" + String(water_duration) + ",\"minute\":" + String(minute_value) + "}";
       first = false;
     }
   }
@@ -741,15 +743,12 @@ static const char FEED_SETTING_HTML[] PROGMEM = R"rawliteral(
                     for (let i = 1; i <= 24; i++) {
                         let entry = json[i] || {};
                         let v = Number(entry.amount || 0);
-                        // 修复：将后端的数字字符串转换为前端使用的选项值
-                        let light = entry.light || '0';
-                        let lightOption = 'none';
-                        if (light === '1') lightOption = 'option1';
-                        else if (light === '2') lightOption = 'option2';
+                        // 修正：直接用数字
+                        let light = typeof entry.light === 'number' ? entry.light : Number(entry.light || 0);
                         let water = typeof entry.water === 'number' ? entry.water : 0;
                         let minute = typeof entry.minute === 'number' ? entry.minute : 0;
                         if (v > 0) {
-                            feedAmounts[i] = { amount: v, light: lightOption, water, minute };
+                            feedAmounts[i] = { amount: v, light: light, water, minute };
                             let box = document.querySelector('.box[data-index="' + i + '"]');
                             if (box) box.classList.add('lit');
                             // 同步label分钟
@@ -758,7 +757,7 @@ static const char FEED_SETTING_HTML[] PROGMEM = R"rawliteral(
                                 label.textContent = i + ':' + (minute.toString().padStart(2, '0'));
                             }
                         } else {
-                            feedAmounts[i] = { amount: 1.0, light: 'none', water: 0, minute: 0 };
+                            feedAmounts[i] = { amount: 1.0, light: 0, water: 0, minute: 0 };
                             let box = document.querySelector('.box[data-index="' + i + '"]');
                             if (box) box.classList.remove('lit');
                             let label = box?.previousElementSibling;
@@ -773,7 +772,7 @@ static const char FEED_SETTING_HTML[] PROGMEM = R"rawliteral(
                 .catch(err => {
                     console.error('Failed to load feed plan:', err);
                     for (let i = 1; i <= 24; i++) {
-                        feedAmounts[i] = { amount: 1.0, light: 'none', water: 0, minute: 0 };
+                        feedAmounts[i] = { amount: 1.0, light: 0, water: 0, minute: 0 };
                     }
                     renderFeedInfoBox();
                 });
@@ -785,12 +784,9 @@ static const char FEED_SETTING_HTML[] PROGMEM = R"rawliteral(
             for (let i = 1; i <= 24; i++) {
                 let box = document.querySelector('.box[data-index="' + i + '"]');
                 if (box && box.classList.contains('lit')) {
-                    let fa = feedAmounts[i] || { amount: 1.0, light: 'none', water: 0, minute: 0 };
-                    // 修复：将前端的选项值转换为后端需要的数字字符串
-                    let lightValue = 'none';
-                    if (fa.light === 'option1') lightValue = '1';
-                    else if (fa.light === 'option2') lightValue = '2';
-                    else lightValue = '0';
+                    let fa = feedAmounts[i] || { amount: 1.0, light: 0, water: 0, minute: 0 };
+                    // 修正：直接用数字
+                    let lightValue = Number(fa.light || 0);
                     obj[i] = { 
                         amount: Number(fa.amount || 1.0), 
                         light: lightValue, 
@@ -816,9 +812,9 @@ static const char FEED_SETTING_HTML[] PROGMEM = R"rawliteral(
             }
             document.body.style.overflow = 'hidden';
 
-            let fa = feedAmounts[hour] || { amount: 1.0, light: 'none', water: 0, minute: 0 };
+            let fa = feedAmounts[hour] || { amount: 1.0, light: 0, water: 0, minute: 0 };
             let amount = fa.amount ?? 1.0;
-            let light = fa.light ?? 'none';
+            let light = typeof fa.light === 'number' ? fa.light : 0;
             let water = fa.water ?? 0;
             let minute = (typeof fa.minute === 'number') ? fa.minute : 0;
 
@@ -848,9 +844,12 @@ static const char FEED_SETTING_HTML[] PROGMEM = R"rawliteral(
             <div style="margin-bottom:12px;">
                 <label style="font-size:15px;font-weight:bold;">灯光效果：</label>
                 <select id="lightEffectSelect" style="font-size:15px;">
-                    <option value="none" ${light === 'none' ? 'selected' : ''}>无</option>
-                    <option value="option1" ${light === 'option1' ? 'selected' : ''}>选项1</option>
-                    <option value="option2" ${light === 'option2' ? 'selected' : ''}>选项2</option>
+                    <option value="0" ${light === 0 ? 'selected' : ''}>无</option>
+                    <option value="1" ${light === 1 ? 'selected' : ''}>选项1</option>
+                    <option value="2" ${light === 2 ? 'selected' : ''}>选项2</option>
+                    <option value="3" ${light === 3 ? 'selected' : ''}>选项3</option>
+                    <option value="4" ${light === 4 ? 'selected' : ''}>选项4</option>
+                    <option value="5" ${light === 5 ? 'selected' : ''}>选项5</option>
                 </select>
             </div>
             <div style="margin-bottom:18px;">
@@ -871,7 +870,7 @@ static const char FEED_SETTING_HTML[] PROGMEM = R"rawliteral(
             minuteInput.oninput = function() {
                 let newMinute = Math.max(0, Math.min(59, Number(this.value) || 0));
                 this.value = newMinute.toString().padStart(2, '0');
-                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0, minute: 0 };
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 0, water: 0, minute: 0 };
                 feedAmounts[hour].minute = newMinute;
                 // 更新原始 box 的显示
                 let label = boxEl.previousElementSibling;
@@ -886,7 +885,7 @@ static const char FEED_SETTING_HTML[] PROGMEM = R"rawliteral(
             const input = popupEl.querySelector('#feedAmountInput');
             range.oninput = function() { 
                 input.value = range.value; 
-                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0, minute: 0 };
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 0, water: 0, minute: 0 };
                 feedAmounts[hour].amount = Number(range.value);
                 updateLitBoxColors();
                 renderFeedInfoBox();
@@ -895,13 +894,13 @@ static const char FEED_SETTING_HTML[] PROGMEM = R"rawliteral(
                 let v = Math.max(0.1, Math.min(5.0, Number(input.value) || 0.1));
                 input.value = v.toFixed(1);
                 range.value = v.toFixed(1);
-                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0, minute: 0 };
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 0, water: 0, minute: 0 };
                 feedAmounts[hour].amount = Number(range.value);
                 updateLitBoxColors();
                 renderFeedInfoBox();
             };
             range.onchange = input.onchange = function() {
-                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0, minute: 0 };
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 0, water: 0, minute: 0 };
                 feedAmounts[hour].amount = Number(range.value);
                 updateLitBoxColors();
                 renderFeedInfoBox();
@@ -910,8 +909,8 @@ static const char FEED_SETTING_HTML[] PROGMEM = R"rawliteral(
             // 灯光效果下拉框
             const lightSelect = popupEl.querySelector('#lightEffectSelect');
             lightSelect.onchange = function() {
-                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0, minute: 0 };
-                feedAmounts[hour].light = this.value;
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 0, water: 0, minute: 0 };
+                feedAmounts[hour].light = Number(this.value);
             };
 
             // 水流时间
@@ -919,18 +918,18 @@ static const char FEED_SETTING_HTML[] PROGMEM = R"rawliteral(
             const waterInput = popupEl.querySelector('#waterTimeInput');
             waterRange.oninput = function() {
                 waterInput.value = waterRange.value;
-                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0, minute: 0 };
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 0, water: 0, minute: 0 };
                 feedAmounts[hour].water = Number(waterRange.value);
             };
             waterInput.oninput = function() {
                 let v = Math.max(0, Math.min(5, Number(waterInput.value) || 0));
                 waterInput.value = v;
                 waterRange.value = v;
-                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0, minute: 0 };
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 0, water: 0, minute: 0 };
                 feedAmounts[hour].water = Number(v);
             };
             waterRange.onchange = waterInput.onchange = function() {
-                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 'none', water: 0, minute: 0 };
+                if (!feedAmounts[hour]) feedAmounts[hour] = { amount: 1.0, light: 0, water: 0, minute: 0 };
                 feedAmounts[hour].water = Number(waterRange.value);
             };
 
@@ -986,7 +985,7 @@ static const char FEED_SETTING_HTML[] PROGMEM = R"rawliteral(
 
         document.addEventListener('DOMContentLoaded', function() {
             for (let i = 1; i <= 24; i++) {
-                feedAmounts[i] = { amount: 1.0, light: 'none', water: 0, minute: 0 };
+                feedAmounts[i] = { amount: 1.0, light: 0, water: 0, minute: 0 };
             }
             updateLitBoxColors();
             renderFeedInfoBox();
@@ -1001,7 +1000,7 @@ static const char FEED_SETTING_HTML[] PROGMEM = R"rawliteral(
         document.getElementById('resetBtn').onclick = function() {
             document.querySelectorAll('.box.lit').forEach(box => box.classList.remove('lit'));
             for (let i = 1; i <= 24; i++) {
-                feedAmounts[i] = { amount: 1.0, light: 'none', water: 0, minute: 0 };
+                feedAmounts[i] = { amount: 1.0, light: 0, water: 0, minute: 0 };
                 let box = document.querySelector('.box[data-index="' + i + '"]');
                 let label = box?.previousElementSibling;
                 if (label && label.classList.contains('label')) {
